@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>__PROJECT_NAME__ — Feature Explorer</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: system-ui, sans-serif; background: #0d1117; color: #c9d1d9; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+header { padding: 14px 20px; border-bottom: 1px solid #21262d; display: flex; align-items: center; gap: 16px; background: #161b22; flex-shrink: 0; }
+header h1 { font-size: 15px; font-weight: 600; color: #e6edf3; }
+#stats { font-size: 12px; color: #8b949e; margin-left: auto; display: flex; gap: 16px; }
+.stat span { font-weight: 600; color: #58a6ff; }
+
+#layout { display: flex; flex: 1; overflow: hidden; }
+
+/* Sidebar */
+#sidebar { width: 220px; flex-shrink: 0; border-right: 1px solid #21262d; padding: 16px 14px; overflow-y: auto; display: flex; flex-direction: column; gap: 18px; background: #0d1117; }
+.filter-group label.group-label { font-size: 11px; font-weight: 600; color: #8b949e; text-transform: uppercase; letter-spacing: .06em; display: block; margin-bottom: 8px; }
+input[type=search] { width: 100%; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #c9d1d9; padding: 7px 10px; font-size: 13px; outline: none; }
+input[type=search]:focus { border-color: #58a6ff; }
+input[type=search]::placeholder { color: #484f58; }
+
+.cat-filter { display: flex; flex-direction: column; gap: 5px; }
+.cat-check { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; color: #c9d1d9; padding: 2px 0; }
+.cat-check input { cursor: pointer; accent-color: #58a6ff; }
+.cat-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+.range-group { display: flex; flex-direction: column; gap: 6px; }
+.range-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #8b949e; }
+.range-row input { flex: 1; accent-color: #58a6ff; }
+.range-val { min-width: 16px; text-align: right; color: #c9d1d9; font-weight: 500; }
+
+select { width: 100%; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #c9d1d9; padding: 7px 10px; font-size: 13px; outline: none; cursor: pointer; }
+select:focus { border-color: #58a6ff; }
+
+.sidebar-actions { display: flex; gap: 8px; }
+button.sm { font-size: 12px; padding: 5px 10px; border-radius: 5px; border: 1px solid #30363d; background: #21262d; color: #c9d1d9; cursor: pointer; flex: 1; }
+button.sm:hover { background: #2d333b; }
+
+/* Cards */
+#cards-area { flex: 1; overflow-y: auto; padding: 16px; }
+#cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+#empty { display: none; color: #484f58; font-size: 14px; padding: 40px; text-align: center; }
+
+.card { background: #161b22; border: 1px solid #21262d; border-radius: 8px; padding: 14px; display: flex; flex-direction: column; gap: 10px; transition: border-color .15s; }
+.card:hover { border-color: #30363d; }
+.card.want { border-color: #238636; background: #0d2016; }
+.card.skip { opacity: .45; }
+
+.card-top { display: flex; align-items: flex-start; gap: 8px; }
+.cat-badge { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 10px; flex-shrink: 0; margin-top: 2px; text-transform: uppercase; letter-spacing: .04em; }
+.card-title { font-size: 14px; font-weight: 600; color: #e6edf3; line-height: 1.3; }
+.card-desc { font-size: 12px; color: #8b949e; line-height: 1.5; }
+
+.card-meta { display: flex; gap: 14px; font-size: 11px; color: #8b949e; }
+.meta-item { display: flex; align-items: center; gap: 4px; }
+.dots { display: flex; gap: 2px; }
+.dot { width: 7px; height: 7px; border-radius: 50%; }
+.dot.filled { background: #f0883e; }
+.dot.empty { background: #21262d; }
+.stars { display: flex; gap: 2px; }
+.star.filled { color: #d2a8ff; }
+.star.empty { color: #21262d; }
+
+.card-actions { display: flex; gap: 6px; margin-top: 2px; }
+.action-btn { flex: 1; padding: 6px 4px; border-radius: 5px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1px solid #30363d; background: #0d1117; color: #8b949e; transition: all .15s; }
+.action-btn:hover { background: #21262d; color: #c9d1d9; }
+.action-btn.active-want { background: #1a4b2a; border-color: #238636; color: #3fb950; }
+.action-btn.active-later { background: #1c2333; border-color: #388bfd; color: #58a6ff; }
+.action-btn.active-skip { background: #1c1c1c; border-color: #484f58; color: #6e7681; }
+
+/* Prompt area */
+#prompt-area { border-top: 1px solid #21262d; background: #161b22; flex-shrink: 0; padding: 12px 16px; display: flex; gap: 12px; align-items: flex-start; max-height: 160px; }
+#prompt-text { flex: 1; font-size: 12px; line-height: 1.6; color: #c9d1d9; font-family: ui-monospace, monospace; overflow-y: auto; max-height: 132px; white-space: pre-wrap; }
+#prompt-text.placeholder { color: #484f58; font-family: system-ui; font-style: italic; }
+#copy-btn { flex-shrink: 0; padding: 8px 16px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #c9d1d9; font-size: 13px; cursor: pointer; }
+#copy-btn:hover { background: #2d333b; }
+#copy-btn.copied { background: #1a4b2a; border-color: #238636; color: #3fb950; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>__PROJECT_NAME__ — Feature Explorer</h1>
+  <div id="stats">
+    <div class="stat">Want: <span id="s-want">0</span></div>
+    <div class="stat">Later: <span id="s-later">0</span></div>
+    <div class="stat">Showing: <span id="s-showing">0</span></div>
+  </div>
+</header>
+
+<div id="layout">
+  <aside id="sidebar">
+    <div class="filter-group">
+      <label class="group-label">Search</label>
+      <input type="search" id="search" placeholder="Feature name…">
+    </div>
+
+    <div class="filter-group">
+      <label class="group-label">Category</label>
+      <div class="cat-filter" id="cat-filters"></div>
+    </div>
+
+    <div class="filter-group">
+      <label class="group-label">Min Impact</label>
+      <div class="range-group">
+        <div class="range-row">
+          <span>1</span><input type="range" id="min-impact" min="1" max="3" value="1"><span>3</span>
+          <span class="range-val" id="min-impact-val">1</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="filter-group">
+      <label class="group-label">Max Effort</label>
+      <div class="range-group">
+        <div class="range-row">
+          <span>1</span><input type="range" id="max-effort" min="1" max="3" value="3"><span>3</span>
+          <span class="range-val" id="max-effort-val">3</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="filter-group">
+      <label class="group-label">Sort by</label>
+      <select id="sort">
+        <option value="impact">Impact (high→low)</option>
+        <option value="effort">Effort (low→high)</option>
+        <option value="roi">ROI (impact/effort)</option>
+        <option value="cat">Category</option>
+        <option value="alpha">Alphabetical</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label class="group-label">Status</label>
+      <select id="status-filter">
+        <option value="all">All features</option>
+        <option value="want">Wanted only</option>
+        <option value="later">Later only</option>
+        <option value="undecided">Undecided only</option>
+      </select>
+    </div>
+
+    <div class="sidebar-actions">
+      <button class="sm" onclick="clearAll()">Clear all</button>
+      <button class="sm" onclick="wantQuickWins()">Quick wins</button>
+    </div>
+  </aside>
+
+  <div id="cards-area">
+    <div id="cards"></div>
+    <div id="empty">No features match your filters.</div>
+  </div>
+</div>
+
+<div id="prompt-area">
+  <div id="prompt-text" class="placeholder">Mark features as "Want" to generate an implementation prompt…</div>
+  <button id="copy-btn" onclick="copyPrompt()">Copy Prompt</button>
+</div>
+
+<script>
+const PROJECT_NAME = '__PROJECT_NAME__';
+
+const CATEGORIES = __CATEGORIES__;
+
+const FEATURES = __FEATURES__;
+
+const state = {
+  search: '',
+  cats: Object.fromEntries(Object.keys(CATEGORIES).map(k => [k, true])),
+  minImpact: 1,
+  maxEffort: 3,
+  sort: 'impact',
+  statusFilter: 'all',
+  decisions: {},
+};
+
+function decide(id, status) {
+  if (state.decisions[id] === status) delete state.decisions[id];
+  else state.decisions[id] = status;
+  render();
+}
+
+function filtered() {
+  return FEATURES.filter(f => {
+    if (!state.cats[f.cat]) return false;
+    if (f.impact < state.minImpact) return false;
+    if (f.effort > state.maxEffort) return false;
+    if (state.search && !f.title.toLowerCase().includes(state.search.toLowerCase()) &&
+        !f.desc.toLowerCase().includes(state.search.toLowerCase())) return false;
+    const d = state.decisions[f.id];
+    if (state.statusFilter === 'want' && d !== 'want') return false;
+    if (state.statusFilter === 'later' && d !== 'later') return false;
+    if (state.statusFilter === 'undecided' && d) return false;
+    return true;
+  }).sort((a, b) => {
+    if (state.sort === 'impact') return b.impact - a.impact || a.effort - b.effort;
+    if (state.sort === 'effort') return a.effort - b.effort || b.impact - a.impact;
+    if (state.sort === 'roi') return (b.impact/b.effort) - (a.impact/a.effort);
+    if (state.sort === 'cat') return a.cat.localeCompare(b.cat);
+    return a.title.localeCompare(b.title);
+  });
+}
+
+function dots(n, max) {
+  return Array.from({length: max}, (_, i) =>
+    `<span class="dot ${i < n ? 'filled' : 'empty'}"></span>`).join('');
+}
+
+function stars(n, max) {
+  return Array.from({length: max}, (_, i) =>
+    `<span class="star ${i < n ? 'filled' : 'empty'}">★</span>`).join('');
+}
+
+function btn(id, type, label) {
+  const d = state.decisions[id];
+  const active = d === type ? `active-${type}` : '';
+  return `<button class="action-btn ${active}" onclick="decide('${id}','${type}')">${label}</button>`;
+}
+
+function render() {
+  const list = filtered();
+  const cards = document.getElementById('cards');
+  const empty = document.getElementById('empty');
+
+  cards.innerHTML = list.map(f => {
+    const cat = CATEGORIES[f.cat];
+    const d = state.decisions[f.id] || '';
+    return `<div class="card ${d}">
+      <div class="card-top">
+        <span class="cat-badge" style="color:${cat.color};background:${cat.bg}">${cat.label}</span>
+        <div class="card-title">${f.title}</div>
+      </div>
+      <div class="card-desc">${f.desc}</div>
+      <div class="card-meta">
+        <div class="meta-item"><div class="stars">${stars(f.impact,3)}</div> Impact</div>
+        <div class="meta-item"><div class="dots">${dots(f.effort,3)}</div> Effort</div>
+      </div>
+      <div class="card-actions">
+        ${btn(f.id,'want','✓ Want')}
+        ${btn(f.id,'later','~ Later')}
+        ${btn(f.id,'skip','✗ Skip')}
+      </div>
+    </div>`;
+  }).join('');
+
+  empty.style.display = list.length ? 'none' : 'block';
+
+  const wanted = FEATURES.filter(f => state.decisions[f.id] === 'want');
+  const later  = FEATURES.filter(f => state.decisions[f.id] === 'later');
+  document.getElementById('s-want').textContent = wanted.length;
+  document.getElementById('s-later').textContent = later.length;
+  document.getElementById('s-showing').textContent = list.length;
+
+  updatePrompt(wanted, later);
+}
+
+function updatePrompt(wanted, later) {
+  const el = document.getElementById('prompt-text');
+  if (!wanted.length && !later.length) {
+    el.textContent = 'Mark features as "Want" to generate an implementation prompt…';
+    el.className = 'placeholder';
+    return;
+  }
+  el.className = '';
+
+  const byTier = features => ({
+    quick: features.filter(f => f.effort === 1),
+    med:   features.filter(f => f.effort === 2),
+    big:   features.filter(f => f.effort === 3),
+  });
+
+  const lines = [`Add the following features to ${PROJECT_NAME}:\n`];
+
+  if (wanted.length) {
+    const { quick, med, big } = byTier(wanted);
+    if (quick.length) { lines.push('Quick wins (low effort):'); quick.forEach(f => lines.push(`  • ${f.title} — ${f.desc}`)); }
+    if (med.length)   { lines.push('\nCore features (medium effort):'); med.forEach(f => lines.push(`  • ${f.title} — ${f.desc}`)); }
+    if (big.length)   { lines.push('\nMajor investments (high effort):'); big.forEach(f => lines.push(`  • ${f.title} — ${f.desc}`)); }
+  }
+  if (later.length) {
+    lines.push('\nFor later (low priority):');
+    later.forEach(f => lines.push(`  • ${f.title}`));
+  }
+  lines.push('\nPrioritize quick wins first, then tackle features in the order listed.');
+  el.textContent = lines.join('\n');
+}
+
+function copyPrompt() {
+  const text = document.getElementById('prompt-text').textContent;
+  if (document.getElementById('prompt-text').classList.contains('placeholder')) return;
+  navigator.clipboard.writeText(text).then(() => {
+    const b = document.getElementById('copy-btn');
+    b.textContent = 'Copied!'; b.className = 'copied';
+    setTimeout(() => { b.textContent = 'Copy Prompt'; b.className = ''; }, 1800);
+  });
+}
+
+function clearAll() { state.decisions = {}; render(); }
+
+function wantQuickWins() {
+  FEATURES.filter(f => f.effort === 1 && f.impact >= 2).forEach(f => { state.decisions[f.id] = 'want'; });
+  render();
+}
+
+function buildCatFilters() {
+  document.getElementById('cat-filters').innerHTML = Object.entries(CATEGORIES).map(([k, v]) => `
+    <label class="cat-check">
+      <input type="checkbox" checked data-cat="${k}" onchange="toggleCat('${k}',this.checked)">
+      <span class="cat-dot" style="background:${v.color}"></span>
+      ${v.label}
+    </label>
+  `).join('');
+}
+
+function toggleCat(k, v) { state.cats[k] = v; render(); }
+
+document.getElementById('search').addEventListener('input', e => { state.search = e.target.value; render(); });
+document.getElementById('min-impact').addEventListener('input', e => { state.minImpact = +e.target.value; document.getElementById('min-impact-val').textContent = e.target.value; render(); });
+document.getElementById('max-effort').addEventListener('input', e => { state.maxEffort = +e.target.value; document.getElementById('max-effort-val').textContent = e.target.value; render(); });
+document.getElementById('sort').addEventListener('change', e => { state.sort = e.target.value; render(); });
+document.getElementById('status-filter').addEventListener('change', e => { state.statusFilter = e.target.value; render(); });
+
+buildCatFilters();
+render();
+</script>
+</body>
+</html>
